@@ -1,0 +1,1 @@
+A search engine builds an index from documents. The index helps the engine find matching documents without scanning every document.

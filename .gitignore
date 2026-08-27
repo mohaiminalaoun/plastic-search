@@ -1,9 +1,2 @@
-/node_modules
-/dist
-/build
-/coverage
-/logs
-/tmp
-/cache
-/temp
-/backup
+node_modules/
+dist/

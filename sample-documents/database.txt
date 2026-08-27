@@ -1,0 +1,1 @@
+A database stores data in tables. A database index helps queries find matching records without scanning every record.
