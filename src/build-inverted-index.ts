@@ -8,6 +8,12 @@ const documentsDirectory = fileURLToPath(
 
 type InvertedIndex = Map<string, Set<string>>;
 
+// Makes indexing and searching use the same term format by lowercasing the word
+// and removing punctuation from its edges while preserving internal punctuation.
+function normalizeTerm(term: string): string {
+  return term.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+}
+
 // Finds every .txt document in the sample directory and sorts the names so the
 // script produces the same output order every time.
 async function findTextFiles(directory: string): Promise<string[]> {
@@ -39,7 +45,12 @@ async function buildInvertedIndex(fileNames: string[]): Promise<InvertedIndex> {
     const words = await readWords(fileName);
 
     for (const word of words) {
-      const normalizedWord = word.toLowerCase();
+      const normalizedWord = normalizeTerm(word);
+
+      if (normalizedWord === "") {
+        continue;
+      }
+
       const documents = invertedIndex.get(normalizedWord) ?? new Set<string>();
 
       documents.add(fileName);
@@ -57,7 +68,23 @@ function printInvertedIndex(invertedIndex: InvertedIndex): void {
   }
 }
 
+// Looks up one lowercase term and prints its matching file names in sorted
+// order. If the term is absent, the empty Set makes this print nothing.
+function printSearchResults(invertedIndex: InvertedIndex, term: string): void {
+  const matchingFiles =
+    invertedIndex.get(normalizeTerm(term)) ?? new Set<string>();
+
+  for (const fileName of [...matchingFiles].sort()) {
+    console.log(fileName);
+  }
+}
+
 const textFiles = await findTextFiles(documentsDirectory);
 const invertedIndex = await buildInvertedIndex(textFiles);
+const searchTerm = process.argv[2];
 
-printInvertedIndex(invertedIndex);
+if (searchTerm === undefined) {
+  printInvertedIndex(invertedIndex);
+} else {
+  printSearchResults(invertedIndex, searchTerm);
+}
