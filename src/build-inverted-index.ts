@@ -1,18 +1,16 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  addDocumentToIndex,
+  type InvertedIndex,
+  normalizeTerm,
+  type PostingList,
+} from "./inverted-index.ts";
 
 const documentsDirectory = fileURLToPath(
   new URL("../sample-documents/", import.meta.url),
 );
-
-type InvertedIndex = Map<string, Set<string>>;
-
-// Makes indexing and searching use the same term format by lowercasing the word
-// and removing punctuation from its edges while preserving internal punctuation.
-function normalizeTerm(term: string): string {
-  return term.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
-}
 
 // Finds every .txt document in the sample directory and sorts the names so the
 // script produces the same output order every time.
@@ -36,46 +34,49 @@ async function readWords(fileName: string): Promise<string[]> {
   return trimmedContents === "" ? [] : trimmedContents.split(/\s+/);
 }
 
-// Builds the inverted index by connecting each lowercase word to every file
-// containing it.
+// Builds the inverted index one document at a time after the file-loading layer
+// has converted each document into an array of words.
 async function buildInvertedIndex(fileNames: string[]): Promise<InvertedIndex> {
   const invertedIndex: InvertedIndex = new Map();
 
   for (const fileName of fileNames) {
     const words = await readWords(fileName);
 
-    for (const word of words) {
-      const normalizedWord = normalizeTerm(word);
-
-      if (normalizedWord === "") {
-        continue;
-      }
-
-      const documents = invertedIndex.get(normalizedWord) ?? new Set<string>();
-
-      documents.add(fileName);
-      invertedIndex.set(normalizedWord, documents);
-    }
+    addDocumentToIndex(invertedIndex, fileName, words);
   }
 
   return invertedIndex;
 }
 
-// Prints one sorted index entry per line in the form "word: file1, file2"
+// Sorts postings from highest to lowest term count. Equal counts use the file
+// name as a tie-breaker so the output remains predictable.
+function sortPostingsByCount(postings: PostingList): [string, number][] {
+  return [...postings.entries()].sort(
+    ([leftFile, leftCount], [rightFile, rightCount]) =>
+      rightCount - leftCount || leftFile.localeCompare(rightFile),
+  );
+}
+
+// Prints the full sorted index, including each document's term count, so the
+// nested term-to-document-to-count structure is visible in the terminal.
 function printInvertedIndex(invertedIndex: InvertedIndex): void {
-  for (const [word, documents] of [...invertedIndex.entries()].sort()) {
-    console.log(`${word}: ${[...documents].join(", ")}`);
+  for (const [word, postings] of [...invertedIndex.entries()].sort()) {
+    const formattedPostings = sortPostingsByCount(postings)
+      .map(([fileName, count]) => `${fileName} (${count})`)
+      .join(", ");
+
+    console.log(`${word}: ${formattedPostings}`);
   }
 }
 
-// Looks up one lowercase term and prints its matching file names in sorted
-// order. If the term is absent, the empty Set makes this print nothing.
+// Looks up one normalized term and prints each matching file with its term
+// count. If the term is absent, the empty Map makes this print nothing.
 function printSearchResults(invertedIndex: InvertedIndex, term: string): void {
-  const matchingFiles =
-    invertedIndex.get(normalizeTerm(term)) ?? new Set<string>();
+  const postings =
+    invertedIndex.get(normalizeTerm(term)) ?? new Map<string, number>();
 
-  for (const fileName of [...matchingFiles].sort()) {
-    console.log(fileName);
+  for (const [fileName, count] of sortPostingsByCount(postings)) {
+    console.log(`${fileName}: ${count}`);
   }
 }
 
