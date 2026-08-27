@@ -5,6 +5,7 @@ import {
   addDocumentToIndex,
   type InvertedIndex,
   normalizeTerm,
+  type Posting,
   type PostingList,
 } from "./inverted-index.ts";
 
@@ -50,10 +51,11 @@ async function buildInvertedIndex(fileNames: string[]): Promise<InvertedIndex> {
 
 // Sorts postings from highest to lowest term count. Equal counts use the file
 // name as a tie-breaker so the output remains predictable.
-function sortPostingsByCount(postings: PostingList): [string, number][] {
-  return [...postings.entries()].sort(
-    ([leftFile, leftCount], [rightFile, rightCount]) =>
-      rightCount - leftCount || leftFile.localeCompare(rightFile),
+function sortPostingsByCount(postings: PostingList): Posting[] {
+  return [...postings].sort(
+    (left, right) =>
+      right.occurrences - left.occurrences ||
+      left.fileName.localeCompare(right.fileName),
   );
 }
 
@@ -62,7 +64,7 @@ function sortPostingsByCount(postings: PostingList): [string, number][] {
 function printInvertedIndex(invertedIndex: InvertedIndex): void {
   for (const [word, postings] of [...invertedIndex.entries()].sort()) {
     const formattedPostings = sortPostingsByCount(postings)
-      .map(([fileName, count]) => `${fileName} (${count})`)
+      .map(({ fileName, occurrences }) => `${fileName} (${occurrences})`)
       .join(", ");
 
     console.log(`${word}: ${formattedPostings}`);
@@ -70,13 +72,12 @@ function printInvertedIndex(invertedIndex: InvertedIndex): void {
 }
 
 // Looks up one normalized term and prints each matching file with its term
-// count. If the term is absent, the empty Map makes this print nothing.
+// count. If the term is absent, the empty list makes this print nothing.
 function printSearchResults(invertedIndex: InvertedIndex, term: string): void {
-  const postings =
-    invertedIndex.get(normalizeTerm(term)) ?? new Map<string, number>();
+  const postings = invertedIndex.get(normalizeTerm(term)) ?? [];
 
-  for (const [fileName, count] of sortPostingsByCount(postings)) {
-    console.log(`${fileName}: ${count}`);
+  for (const { fileName, occurrences } of sortPostingsByCount(postings)) {
+    console.log(`${fileName}: ${occurrences}`);
   }
 }
 

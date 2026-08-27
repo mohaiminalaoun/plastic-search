@@ -1,4 +1,11 @@
-export type PostingList = Map<string, number>;
+// One posting keeps track of how often a term appears in one file.
+export interface Posting {
+  fileName: string;
+  occurrences: number;
+}
+
+// Each term in the inverted index points to a list of its postings.
+export type PostingList = Posting[];
 export type InvertedIndex = Map<string, PostingList>;
 
 // Makes indexing and searching use the same term format by lowercasing the word
@@ -21,11 +28,15 @@ export function addDocumentToIndex(
       continue;
     }
 
-    const postings =
-      invertedIndex.get(normalizedWord) ?? new Map<string, number>();
-    const currentCount = postings.get(fileName) ?? 0;
+    const postings = invertedIndex.get(normalizedWord) ?? [];
+    const posting = postings.find((posting) => posting.fileName === fileName);
 
-    postings.set(fileName, currentCount + 1);
+    if (posting === undefined) {
+      postings.push({ fileName, occurrences: 1 });
+    } else {
+      posting.occurrences += 1;
+    }
+
     invertedIndex.set(normalizedWord, postings);
   }
 }
