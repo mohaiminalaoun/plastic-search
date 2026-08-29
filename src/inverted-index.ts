@@ -8,6 +8,11 @@ export interface Posting {
 export type PostingList = Posting[];
 export type InvertedIndex = Map<string, PostingList>;
 
+// Create the index here so callers don't need to know how it is stored.
+export function createInvertedIndex(): InvertedIndex {
+  return new Map();
+}
+
 // Makes indexing and searching use the same term format by lowercasing the word
 // and removing punctuation from its edges while preserving internal punctuation.
 export function normalizeTerm(term: string): string {

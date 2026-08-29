@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   addDocumentToIndex,
+  createInvertedIndex,
   type InvertedIndex,
   type Posting,
   type PostingList,
@@ -39,7 +40,7 @@ async function readWords(fileName: string): Promise<string[]> {
 // Builds the inverted index one document at a time after the file-loading layer
 // has converted each document into an array of words.
 async function buildInvertedIndex(fileNames: string[]): Promise<InvertedIndex> {
-  const invertedIndex: InvertedIndex = new Map();
+  const invertedIndex = createInvertedIndex();
 
   for (const fileName of fileNames) {
     const words = await readWords(fileName);

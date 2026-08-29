@@ -1,14 +1,14 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { addDocumentToIndex, type InvertedIndex } from "./inverted-index.ts";
+import { addDocumentToIndex, createInvertedIndex } from "./inverted-index.ts";
 import { searchIndex, type SearchOperator } from "./search-index.ts";
 
 const documentsDirectory = fileURLToPath(
   new URL("../sample-documents/", import.meta.url),
 );
 const fileNames = ["cache.txt", "database.txt", "search-engine.txt"];
-const invertedIndex: InvertedIndex = new Map();
+const invertedIndex = createInvertedIndex();
 
 // Load the real sample files and build the same kind of index used by the app.
 for (const fileName of fileNames) {
