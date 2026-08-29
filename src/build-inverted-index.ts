@@ -4,10 +4,11 @@ import { fileURLToPath } from "node:url";
 import {
   addDocumentToIndex,
   type InvertedIndex,
-  normalizeTerm,
   type Posting,
   type PostingList,
 } from "./inverted-index.ts";
+import { parseSearchArguments } from "./search-arguments.ts";
+import { searchIndex, type SearchResult } from "./search-index.ts";
 
 const documentsDirectory = fileURLToPath(
   new URL("../sample-documents/", import.meta.url),
@@ -71,22 +72,29 @@ function printInvertedIndex(invertedIndex: InvertedIndex): void {
   }
 }
 
-// Looks up one normalized term and prints each matching file with its term
-// count. If the term is absent, the empty list makes this print nothing.
-function printSearchResults(invertedIndex: InvertedIndex, term: string): void {
-  const postings = invertedIndex.get(normalizeTerm(term)) ?? [];
-
-  for (const { fileName, occurrences } of sortPostingsByCount(postings)) {
-    console.log(`${fileName}: ${occurrences}`);
+// Print the values used to rank each result so I can see why a file came first.
+function printSearchResults(results: SearchResult[]): void {
+  for (const result of results) {
+    console.log(
+      `${result.fileName}: terms=${result.matchedQueryTerms}/${result.totalQueryTerms}, occurrences=${result.matchingTermOccurrences}`,
+    );
   }
 }
 
 const textFiles = await findTextFiles(documentsDirectory);
 const invertedIndex = await buildInvertedIndex(textFiles);
-const searchTerm = process.argv[2];
+const searchArguments = process.argv.slice(2);
 
-if (searchTerm === undefined) {
+if (searchArguments.length === 0) {
   printInvertedIndex(invertedIndex);
 } else {
-  printSearchResults(invertedIndex, searchTerm);
+  try {
+    const { operator, queryTerms } = parseSearchArguments(searchArguments);
+    const results = searchIndex(invertedIndex, queryTerms, operator);
+
+    printSearchResults(results);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
 }

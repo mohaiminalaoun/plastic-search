@@ -5,82 +5,78 @@ export type SearchOperator = "and" | "or";
 
 // Keep these numbers in the result so I can see why one file ranks above another.
 export interface SearchResult {
-    fileName: string;
-    totalQueryTerms: number; // Unique terms in the query.
-    matchedQueryTerms: number; // Query terms found in this file.
-    matchingTermOccurrences: number; // Total times those terms appear.
+  fileName: string;
+  totalQueryTerms: number; // Unique terms in the query.
+  matchedQueryTerms: number; // Query terms found in this file.
+  matchingTermOccurrences: number; // Total times those terms appear.
 }
 
 // Normalize every query term the same way the inverted index does, then remove
 // anything that becomes empty, such as a term containing only punctuation.
 function normalizeQueryTerms(queryTerms: string[]): string[] {
-    return queryTerms.map(normalizeTerm).filter((term) => term !== "");
+  return queryTerms.map(normalizeTerm).filter((term) => term !== "");
 }
 
 // A repeated query term should only count once toward matching and ranking.
 function deduplicateTerms(terms: string[]): string[] {
-    return [...new Set(terms)];
+  return [...new Set(terms)];
 }
 
 // OR needs at least one matching query term. AND needs every query term to match.
 function matchesSearchOperator(
-    result: SearchResult,
-    operator: SearchOperator,
+  result: SearchResult,
+  operator: SearchOperator,
 ): boolean {
-    if (operator === "or") {
-        return result.matchedQueryTerms > 0;
-    }
+  if (operator === "or") {
+    return result.matchedQueryTerms > 0;
+  }
 
-    return result.matchedQueryTerms === result.totalQueryTerms;
+  return result.matchedQueryTerms === result.totalQueryTerms;
 }
 
 // Rank broader matches first, then use occurrence count and filename to break
 // ties. Copying the array keeps this helper from changing its input.
 function rankSearchResults(results: SearchResult[]): SearchResult[] {
-    return [...results].sort(
-        (left, right) =>
-            right.matchedQueryTerms - left.matchedQueryTerms ||
-            right.matchingTermOccurrences - left.matchingTermOccurrences ||
-            left.fileName.localeCompare(right.fileName),
-    );
+  return [...results].sort(
+    (left, right) =>
+      right.matchedQueryTerms - left.matchedQueryTerms ||
+      right.matchingTermOccurrences - left.matchingTermOccurrences ||
+      left.fileName.localeCompare(right.fileName),
+  );
 }
 
 // Search the existing index without changing it. AND keeps complete matches,
 // while OR keeps any file that contains at least one query term.
 export function searchIndex(
-    invertedIndex: InvertedIndex,
-    rawQueryTerms: string[],
-    operator: SearchOperator,
+  invertedIndex: InvertedIndex,
+  rawQueryTerms: string[],
+  operator: SearchOperator,
 ): SearchResult[] {
-    const queryTerms = deduplicateTerms(normalizeQueryTerms(rawQueryTerms));
-    console.log(queryTerms);
-    const resultsByFile = new Map<string, SearchResult>();
+  const queryTerms = deduplicateTerms(normalizeQueryTerms(rawQueryTerms));
+  const resultsByFile = new Map<string, SearchResult>();
 
-    for (const queryTerm of queryTerms) {
-        const postings = invertedIndex.get(queryTerm);
-        console.log("Postings for", queryTerm, postings);
-        if (postings === undefined) {
-            continue;
-        }
-
-        for (const { fileName, occurrences } of postings) {
-            const result = resultsByFile.get(fileName) ?? {
-                fileName,
-                totalQueryTerms: queryTerms.length,
-                matchedQueryTerms: 0,
-                matchingTermOccurrences: 0,
-            };
-
-            result.matchedQueryTerms += 1;
-            result.matchingTermOccurrences += occurrences;
-            resultsByFile.set(fileName, result);
-        }
+  for (const queryTerm of queryTerms) {
+    const postings = invertedIndex.get(queryTerm);
+    if (postings === undefined) {
+      continue;
     }
 
-    console.log("Results by file", resultsByFile);
-    const matchingResults = [...resultsByFile.values()].filter((result) =>
-        matchesSearchOperator(result, operator),
-    );
-    console.log("Returning matching results", matchingResults);
-    return rankSearchResults(matchingResults);
+    for (const { fileName, occurrences } of postings) {
+      const result = resultsByFile.get(fileName) ?? {
+        fileName,
+        totalQueryTerms: queryTerms.length,
+        matchedQueryTerms: 0,
+        matchingTermOccurrences: 0,
+      };
+
+      result.matchedQueryTerms += 1;
+      result.matchingTermOccurrences += occurrences;
+      resultsByFile.set(fileName, result);
+    }
+  }
+
+  const matchingResults = [...resultsByFile.values()].filter((result) =>
+    matchesSearchOperator(result, operator),
+  );
+  return rankSearchResults(matchingResults);
 }
