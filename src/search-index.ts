@@ -1,4 +1,9 @@
-import { type InvertedIndex, normalizeTerm } from "./inverted-index.ts";
+import {
+  indexedDocumentCount,
+  type InvertedIndex,
+  normalizeTerm,
+} from "./inverted-index.ts";
+import { termScore } from "./tf-idf.ts";
 
 // These are the only search operators I'm supporting for now.
 export type SearchOperator = "and" | "or";
@@ -9,6 +14,7 @@ export interface SearchResult {
   totalQueryTerms: number; // Unique terms in the query.
   matchedQueryTerms: number; // Query terms found in this file.
   matchingTermOccurrences: number; // Total times those terms appear.
+  score: number; // TF-IDF for this file against this query.
 }
 
 // Normalize every query term the same way the inverted index does, then remove
@@ -34,14 +40,12 @@ function matchesSearchOperator(
   return result.matchedQueryTerms === result.totalQueryTerms;
 }
 
-// Rank broader matches first, then use occurrence count and filename to break
-// ties. Copying the array keeps this helper from changing its input.
+// Highest score first. Filename is just a tie-breaker so the order
+// doesn't jump around. Copying the array keeps this helper from changing its input.
 function rankSearchResults(results: SearchResult[]): SearchResult[] {
   return [...results].sort(
     (left, right) =>
-      right.matchedQueryTerms - left.matchedQueryTerms ||
-      right.matchingTermOccurrences - left.matchingTermOccurrences ||
-      left.fileName.localeCompare(right.fileName),
+      right.score - left.score || left.fileName.localeCompare(right.fileName),
   );
 }
 
@@ -53,6 +57,7 @@ export function searchIndex(
   operator: SearchOperator,
 ): SearchResult[] {
   const queryTerms = deduplicateTerms(normalizeQueryTerms(rawQueryTerms));
+  const documentCount = indexedDocumentCount(invertedIndex);
   const resultsByFile = new Map<string, SearchResult>();
 
   for (const queryTerm of queryTerms) {
@@ -61,16 +66,24 @@ export function searchIndex(
       continue;
     }
 
+    const documentFrequency = postings.length;
+
     for (const { fileName, occurrences } of postings) {
       const result = resultsByFile.get(fileName) ?? {
         fileName,
         totalQueryTerms: queryTerms.length,
         matchedQueryTerms: 0,
         matchingTermOccurrences: 0,
+        score: 0,
       };
 
       result.matchedQueryTerms += 1;
       result.matchingTermOccurrences += occurrences;
+      result.score += termScore(
+        occurrences,
+        documentFrequency,
+        documentCount,
+      );
       resultsByFile.set(fileName, result);
     }
   }

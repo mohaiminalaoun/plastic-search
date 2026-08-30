@@ -77,7 +77,7 @@ function printInvertedIndex(invertedIndex: InvertedIndex): void {
 function printSearchResults(results: SearchResult[]): void {
   for (const result of results) {
     console.log(
-      `${result.fileName}: terms=${result.matchedQueryTerms}/${result.totalQueryTerms}, occurrences=${result.matchingTermOccurrences}`,
+      `${result.fileName}: score=${result.score.toFixed(4)}, terms=${result.matchedQueryTerms}/${result.totalQueryTerms}, occurrences=${result.matchingTermOccurrences}`,
     );
   }
 }

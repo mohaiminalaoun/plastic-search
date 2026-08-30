@@ -13,6 +13,20 @@ export function createInvertedIndex(): InvertedIndex {
   return new Map();
 }
 
+// How many files actually made it into the index. I need this for IDF.
+// Empty files never get a posting, so they don't count.
+export function indexedDocumentCount(invertedIndex: InvertedIndex): number {
+  const fileNames = new Set<string>();
+
+  for (const postings of invertedIndex.values()) {
+    for (const { fileName } of postings) {
+      fileNames.add(fileName);
+    }
+  }
+
+  return fileNames.size;
+}
+
 // Makes indexing and searching use the same term format by lowercasing the word
 // and removing punctuation from its edges while preserving internal punctuation.
 export function normalizeTerm(term: string): string {
