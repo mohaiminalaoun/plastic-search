@@ -10,6 +10,7 @@ import {
 } from "./inverted-index.ts";
 import { parseSearchArguments } from "./search-arguments.ts";
 import { searchIndex, type SearchResult } from "./search-index.ts";
+import { formatSearchResultsTable } from "./search-results-table.ts";
 
 const documentsDirectory = fileURLToPath(
   new URL("../sample-documents/", import.meta.url),
@@ -75,10 +76,8 @@ function printInvertedIndex(invertedIndex: InvertedIndex): void {
 
 // Print the values used to rank each result so I can see why a file came first.
 function printSearchResults(results: SearchResult[]): void {
-  for (const result of results) {
-    console.log(
-      `${result.fileName}: score=${result.score.toFixed(4)}, terms=${result.matchedQueryTerms}/${result.totalQueryTerms}, occurrences=${result.matchingTermOccurrences}`,
-    );
+  for (const line of formatSearchResultsTable(results)) {
+    console.log(line);
   }
 }
 

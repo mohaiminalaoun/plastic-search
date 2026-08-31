@@ -45,8 +45,10 @@ npm run search -- database
 ```
 
 ```text
-database-repeated.txt: score=2.1211, terms=1/1, occurrences=2
-database-once.txt: score=1.2528, terms=1/1, occurrences=1
+file                  |  score | terms | occurrences
+----------------------+--------+-------+------------
+database-repeated.txt | 2.1211 |   1/1 |           2
+database-once.txt     | 1.2528 |   1/1 |           1
 ```
 
 A rare term is worth more than a common one. `ranking` appears in one document, while `data` appears once in four documents:
@@ -56,11 +58,13 @@ npm run search -- --operator=or data ranking
 ```
 
 ```text
-search-engine.txt: score=1.7918, terms=1/2, occurrences=1
-cache-long.txt: score=0.8109, terms=1/2, occurrences=1
-cache-short.txt: score=0.8109, terms=1/2, occurrences=1
-database-once.txt: score=0.8109, terms=1/2, occurrences=1
-database-repeated.txt: score=0.8109, terms=1/2, occurrences=1
+file                  |  score | terms | occurrences
+----------------------+--------+-------+------------
+search-engine.txt     | 1.7918 |   1/2 |           1
+cache-long.txt        | 0.8109 |   1/2 |           1
+cache-short.txt       | 0.8109 |   1/2 |           1
+database-once.txt     | 0.8109 |   1/2 |           1
+database-repeated.txt | 0.8109 |   1/2 |           1
 ```
 
 Document length does not affect scoring yet. The two cache documents contain `cache` three times each, so their TF-IDF scores tie even though one has 50 words and the other has 100. Filename order breaks the tie for now. Later, document-length normalization should make the shorter document rank higher:
@@ -70,9 +74,11 @@ npm run search -- cache
 ```
 
 ```text
-cache-long.txt: score=2.0584, terms=1/1, occurrences=3
-cache-short.txt: score=2.0584, terms=1/1, occurrences=3
-database-once.txt: score=0.9808, terms=1/1, occurrences=1
+file              |  score | terms | occurrences
+------------------+--------+-------+------------
+cache-long.txt    | 2.0584 |   1/1 |           3
+cache-short.txt   | 2.0584 |   1/1 |           3
+database-once.txt | 0.9808 |   1/1 |           1
 ```
 
 AND is the default operator, so every query term must match. Only one sample document contains both `cache` and `database`:
@@ -82,7 +88,9 @@ npm run search -- cache database
 ```
 
 ```text
-database-once.txt: score=2.2336, terms=2/2, occurrences=2
+file              |  score | terms | occurrences
+------------------+--------+-------+------------
+database-once.txt | 2.2336 |   2/2 |           2
 ```
 
 OR keeps documents containing either term. Matching both terms gives `database-once.txt` the highest combined score:
@@ -92,10 +100,12 @@ npm run search -- --operator=or cache database
 ```
 
 ```text
-database-once.txt: score=2.2336, terms=2/2, occurrences=2
-database-repeated.txt: score=2.1211, terms=1/2, occurrences=2
-cache-long.txt: score=2.0584, terms=1/2, occurrences=3
-cache-short.txt: score=2.0584, terms=1/2, occurrences=3
+file                  |  score | terms | occurrences
+----------------------+--------+-------+------------
+database-once.txt     | 2.2336 |   2/2 |           2
+database-repeated.txt | 2.1211 |   1/2 |           2
+cache-long.txt        | 2.0584 |   1/2 |           3
+cache-short.txt       | 2.0584 |   1/2 |           3
 ```
 
 The search-engine sample gives another straightforward AND result:
@@ -105,7 +115,9 @@ npm run search -- search index
 ```
 
 ```text
-search-engine.txt: score=6.0674, terms=2/2, occurrences=4
+file              |  score | terms | occurrences
+------------------+--------+-------+------------
+search-engine.txt | 6.0674 |   2/2 |           4
 ```
 
 The operator flag is case-insensitive and can appear anywhere after npm's `--` separator. A search with no matches prints nothing.
