@@ -6,25 +6,26 @@ export interface Posting {
 
 // Each term in the inverted index points to a list of its postings.
 export type PostingList = Posting[];
-export type InvertedIndex = Map<string, PostingList>;
+
+// Postings answer "which files contain this term?" Document term counts answer
+// "how long is this file?" after the same normalization the index uses.
+export interface InvertedIndex {
+  postings: Map<string, PostingList>;
+  documentTermCounts: Map<string, number>;
+}
 
 // Create the index here so callers don't need to know how it is stored.
 export function createInvertedIndex(): InvertedIndex {
-  return new Map();
+  return {
+    postings: new Map(),
+    documentTermCounts: new Map(),
+  };
 }
 
 // How many files actually made it into the index. I need this for IDF.
 // Empty files never get a posting, so they don't count.
 export function indexedDocumentCount(invertedIndex: InvertedIndex): number {
-  const fileNames = new Set<string>();
-
-  for (const postings of invertedIndex.values()) {
-    for (const { fileName } of postings) {
-      fileNames.add(fileName);
-    }
-  }
-
-  return fileNames.size;
+  return invertedIndex.documentTermCounts.size;
 }
 
 // Makes indexing and searching use the same term format by lowercasing the word
@@ -34,12 +35,15 @@ export function normalizeTerm(term: string): string {
 }
 
 // Adds one document's words to the index. Each posting stores how many times
-// the term appeared in that particular document.
+// the term appeared in that particular document. Tokens that normalize away
+// are not indexed and do not count toward the document's length.
 export function addDocumentToIndex(
   invertedIndex: InvertedIndex,
   fileName: string,
   words: string[],
 ): void {
+  let termCount = 0;
+
   for (const word of words) {
     const normalizedWord = normalizeTerm(word);
 
@@ -47,7 +51,9 @@ export function addDocumentToIndex(
       continue;
     }
 
-    const postings = invertedIndex.get(normalizedWord) ?? [];
+    termCount += 1;
+
+    const postings = invertedIndex.postings.get(normalizedWord) ?? [];
     const posting = postings.find((posting) => posting.fileName === fileName);
 
     if (posting === undefined) {
@@ -56,6 +62,13 @@ export function addDocumentToIndex(
       posting.occurrences += 1;
     }
 
-    invertedIndex.set(normalizedWord, postings);
+    invertedIndex.postings.set(normalizedWord, postings);
   }
+
+  if (termCount === 0) {
+    return;
+  }
+
+  const previousCount = invertedIndex.documentTermCounts.get(fileName) ?? 0;
+  invertedIndex.documentTermCounts.set(fileName, previousCount + termCount);
 }

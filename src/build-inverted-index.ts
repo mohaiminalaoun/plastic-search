@@ -62,10 +62,17 @@ function sortPostingsByCount(postings: PostingList): Posting[] {
   );
 }
 
-// Prints the full sorted index, including each document's term count, so the
-// nested term-to-document-to-count structure is visible in the terminal.
+// Prints each file's indexed length, then the term-to-postings map.
 function printInvertedIndex(invertedIndex: InvertedIndex): void {
-  for (const [word, postings] of [...invertedIndex.entries()].sort()) {
+  for (const [fileName, termCount] of [
+    ...invertedIndex.documentTermCounts.entries(),
+  ].sort()) {
+    console.log(`${fileName}: ${termCount} terms`);
+  }
+
+  console.log("");
+
+  for (const [word, postings] of [...invertedIndex.postings.entries()].sort()) {
     const formattedPostings = sortPostingsByCount(postings)
       .map(({ fileName, occurrences }) => `${fileName} (${occurrences})`)
       .join(", ");

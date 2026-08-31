@@ -61,7 +61,7 @@ export function searchIndex(
   const resultsByFile = new Map<string, SearchResult>();
 
   for (const queryTerm of queryTerms) {
-    const postings = invertedIndex.get(queryTerm);
+    const postings = invertedIndex.postings.get(queryTerm);
     if (postings === undefined) {
       continue;
     }

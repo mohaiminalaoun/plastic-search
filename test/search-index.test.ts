@@ -31,7 +31,7 @@ function expectedScore(
   let score = 0;
 
   for (const queryTerm of queryTerms) {
-    const postings = invertedIndex.get(queryTerm);
+    const postings = invertedIndex.postings.get(queryTerm);
     const posting = postings?.find((entry) => entry.fileName === fileName);
 
     if (postings === undefined || posting === undefined) {
@@ -50,6 +50,19 @@ test("document count is the number of unique indexed files", () => {
     "b.txt": ["beta", "shared"],
   });
 
+  assert.equal(indexedDocumentCount(index), 2);
+});
+
+test("each document records how many terms survived normalization", () => {
+  const index = buildTestIndex({
+    "a.txt": ["Alpha!", "---", "beta"],
+    "b.txt": ["gamma", "gamma"],
+    "empty.txt": ["...", "!!!"],
+  });
+
+  assert.equal(index.documentTermCounts.get("a.txt"), 2);
+  assert.equal(index.documentTermCounts.get("b.txt"), 2);
+  assert.equal(index.documentTermCounts.has("empty.txt"), false);
   assert.equal(indexedDocumentCount(index), 2);
 });
 
