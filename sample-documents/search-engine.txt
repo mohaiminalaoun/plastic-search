@@ -1,1 +1,1 @@
-A search engine builds an index from documents. The index helps the engine find matching documents without scanning every document.
+A search engine helps users find relevant documents. It builds an index from normalized terms and connects each term to matching files. During a search, the engine retrieves postings instead of scanning every document. Ranking uses the index to order candidates by estimated relevance. Term frequency rewards local repetition, while document frequency gives uncommon terms greater influence across the collection.

@@ -1,0 +1,1 @@
+A cache keeps frequently requested information close to an application. When the application needs data, the cache can answer without contacting a slower service. This cache improves response time and reduces repeated work. Entries remain temporary, so the application can still retrieve the original information whenever stored values become outdated.

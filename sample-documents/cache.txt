@@ -1,1 +1,0 @@
-A cache stores frequently requested data in memory. The cache helps an application return data without reading the database every time.
