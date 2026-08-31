@@ -6,8 +6,8 @@ Right now it reads a few text files and builds an in-memory inverted index. Each
 
 ```text
 database ->
-  database.txt: 2
-  cache.txt: 1
+  database-repeated.txt: 2
+  database-once.txt: 1
 ```
 
 Search supports multiple terms with AND and OR. AND/OR decide which files show up. Ranking is TF-IDF: a word that shows up a lot in this file is worth more, and a word that only shows up in a few files is worth more than a word that shows up everywhere. I add those pieces together for each matching query term. Equal scores fall back to filename.
@@ -28,7 +28,7 @@ npm install
 
 ## Build the index
 
-Print the complete inverted index:
+Print each document's indexed length followed by the complete inverted index:
 
 ```sh
 npm run build-index
@@ -38,7 +38,7 @@ The index normalizes words to lowercase and removes punctuation from their edges
 
 ## Search
 
-Term frequency makes repeated terms more valuable. Both documents below have 60 words, so the difference comes from `database` appearing twice in one and once in the other:
+Term frequency makes repeated terms more valuable. Both documents below have 60 indexed terms, so the difference comes from `database` appearing twice in one and once in the other:
 
 ```sh
 npm run search -- database
@@ -67,7 +67,7 @@ database-once.txt     | 0.8109 |   1/2 |           1
 database-repeated.txt | 0.8109 |   1/2 |           1
 ```
 
-Document length does not affect scoring yet. The two cache documents contain `cache` three times each, so their TF-IDF scores tie even though one has 50 words and the other has 100. Filename order breaks the tie for now. Later, document-length normalization should make the shorter document rank higher:
+Document length does not affect scoring yet. The two cache documents contain `cache` three times each, so their TF-IDF scores tie even though one has 50 indexed terms and the other has 100. Filename order breaks the tie for now. Later, document-length normalization should make the shorter document rank higher:
 
 ```sh
 npm run search -- cache
@@ -120,7 +120,7 @@ file              |  score | terms | occurrences
 search-engine.txt | 6.0674 |   2/2 |           4
 ```
 
-The operator flag is case-insensitive and can appear anywhere after npm's `--` separator. A search with no matches prints nothing.
+The operator value is case-insensitive, and the `--operator=` flag can appear anywhere after npm's `--` separator. A search with no matches prints nothing.
 
 ## Other commands
 
@@ -132,7 +132,7 @@ npm start            # Run the compiled original reader
 npm test             # Run the unit tests
 ```
 
-The tests use Node's built-in test runner. They cover search behavior, scoring, and argument parsing through public functions rather than depending on the internal index structure.
+The tests use Node's built-in test runner. They cover search behavior, scoring, argument parsing, normalized document lengths, and ASCII table output.
 
 ## Current limits
 
